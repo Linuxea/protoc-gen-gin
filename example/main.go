@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 
@@ -20,29 +21,39 @@ import (
 // @version         1.0
 // @description     HTTP API adapted from gRPC services by protoc-gen-gin.
 func main() {
-	lis, err := net.Listen("tcp", "127.0.0.1:9091")
-	if err != nil {
-		log.Fatalf("grpc listen: %v", err)
-	}
-	grpcSrv := grpc.NewServer()
-	userv1.RegisterUserServiceServer(grpcSrv, &userService{users: map[int64]*userv1.GetUserResponse{
-		1: {Id: 1, Name: "alice", Email: "alice@example.com"},
-	}})
-	userv1.RegisterNotificationServiceServer(grpcSrv, notificationService{})
-	go func() { _ = grpcSrv.Serve(lis) }()
+	conn := serveGRPC("127.0.0.1:9091", func(s *grpc.Server) {
+		userv1.RegisterUserServiceServer(s, &userService{users: map[int64]*userv1.GetUserResponse{
+			1: {Id: 1, Name: "alice", Email: "alice@example.com"},
+		}})
+		userv1.RegisterNotificationServiceServer(s, notificationService{})
+	})
 
-	conn, err := grpc.NewClient("127.0.0.1:9091", grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("grpc client: %v", err)
-	}
+	router := gin.Default()
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	userv1.RegisterUserServiceGin(router, userv1.NewUserServiceClient(conn))
+	userv1.RegisterNotificationServiceGin(router, userv1.NewNotificationServiceClient(conn))
 
-	r := gin.Default()
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	userv1.RegisterUserServiceGin(r, userv1.NewUserServiceClient(conn))
-	userv1.RegisterNotificationServiceGin(r, userv1.NewNotificationServiceClient(conn))
-
-	log.Println("http server on :8080, swagger ui at http://localhost:8080/swagger/index.html")
-	if err := r.Run(":8080"); err != nil {
+	log.Println("grpc on :9091, http on :8080, swagger ui at http://localhost:8080/swagger/index.html")
+	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("http server: %v", err)
 	}
+}
+
+func serveGRPC(addr string, register func(*grpc.Server)) *grpc.ClientConn {
+	lis, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("grpc listen %s: %v", addr, err)
+	}
+	grpcSrv := grpc.NewServer(grpc.UnaryInterceptor(func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		log.Printf("grpc <- %s", info.FullMethod)
+		return handler(ctx, req)
+	}))
+	register(grpcSrv)
+	go func() { _ = grpcSrv.Serve(lis) }()
+
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("grpc client %s: %v", addr, err)
+	}
+	return conn
 }
