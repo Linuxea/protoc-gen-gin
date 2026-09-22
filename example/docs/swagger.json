@@ -1,0 +1,226 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "HTTP API adapted from gRPC services by protoc-gen-gin.",
+        "title": "protoc-gen-gin Example API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/user.v1.NotificationService/Send": {
+            "post": {
+                "description": "Send 给指定用户发送通知。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NotificationService"
+                ],
+                "summary": "Send",
+                "operationId": "user.v1.NotificationService.Send",
+                "parameters": [
+                    {
+                        "description": "Send request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/userv1.SendRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/userv1.SendResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginruntime.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ginruntime.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/user.v1.UserService/GetUser": {
+            "post": {
+                "description": "GetUser 根据 ID 获取用户。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "UserService"
+                ],
+                "summary": "GetUser",
+                "operationId": "user.v1.UserService.GetUser",
+                "parameters": [
+                    {
+                        "description": "GetUser request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/userv1.GetUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/userv1.GetUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginruntime.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ginruntime.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/user.v1.UserService/UpdateUser": {
+            "post": {
+                "description": "UpdateUser 更新用户信息。\nid 为必填。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "UserService"
+                ],
+                "summary": "UpdateUser",
+                "operationId": "user.v1.UserService.UpdateUser",
+                "parameters": [
+                    {
+                        "description": "UpdateUser request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/userv1.UpdateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/userv1.UpdateUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ginruntime.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ginruntime.Error"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "ginruntime.Error": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "userv1.GetUserRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "用户 ID",
+                    "type": "integer"
+                }
+            }
+        },
+        "userv1.GetUserResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "userv1.SendRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "userv1.SendResponse": {
+            "type": "object",
+            "properties": {
+                "message_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "userv1.UpdateUserRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "userv1.UpdateUserResponse": {
+            "type": "object",
+            "properties": {
+                "ok": {
+                    "type": "boolean"
+                }
+            }
+        }
+    }
+}

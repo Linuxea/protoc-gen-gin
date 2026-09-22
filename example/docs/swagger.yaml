@@ -1,0 +1,149 @@
+definitions:
+  ginruntime.Error:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+    type: object
+  userv1.GetUserRequest:
+    properties:
+      id:
+        description: 用户 ID
+        type: integer
+    type: object
+  userv1.GetUserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  userv1.SendRequest:
+    properties:
+      content:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  userv1.SendResponse:
+    properties:
+      message_id:
+        type: string
+    type: object
+  userv1.UpdateUserRequest:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  userv1.UpdateUserResponse:
+    properties:
+      ok:
+        type: boolean
+    type: object
+info:
+  contact: {}
+  description: HTTP API adapted from gRPC services by protoc-gen-gin.
+  title: protoc-gen-gin Example API
+  version: "1.0"
+paths:
+  /user.v1.NotificationService/Send:
+    post:
+      consumes:
+      - application/json
+      description: Send 给指定用户发送通知。
+      operationId: user.v1.NotificationService.Send
+      parameters:
+      - description: Send request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/userv1.SendRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userv1.SendResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginruntime.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ginruntime.Error'
+      summary: Send
+      tags:
+      - NotificationService
+  /user.v1.UserService/GetUser:
+    post:
+      consumes:
+      - application/json
+      description: GetUser 根据 ID 获取用户。
+      operationId: user.v1.UserService.GetUser
+      parameters:
+      - description: GetUser request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/userv1.GetUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userv1.GetUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginruntime.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ginruntime.Error'
+      summary: GetUser
+      tags:
+      - UserService
+  /user.v1.UserService/UpdateUser:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        UpdateUser 更新用户信息。
+        id 为必填。
+      operationId: user.v1.UserService.UpdateUser
+      parameters:
+      - description: UpdateUser request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/userv1.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/userv1.UpdateUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ginruntime.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ginruntime.Error'
+      summary: UpdateUser
+      tags:
+      - UserService
+swagger: "2.0"

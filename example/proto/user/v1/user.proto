@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "github.com/Linuxea/protoc-gen-gin/example/proto/user/v1;userv1";
+
+message GetUserRequest {
+  // 用户 ID
+  int64 id = 1;
+}
+
+message GetUserResponse {
+  int64 id = 1;
+  string name = 2;
+  string email = 3;
+}
+
+message UpdateUserRequest {
+  int64 id = 1;
+  string name = 2;
+}
+
+message UpdateUserResponse {
+  bool ok = 1;
+}
+
+message WatchUsersRequest {
+  int64 id = 1;
+}
+
+message WatchUsersEvent {
+  int64 id = 1;
+  string name = 2;
+}
+
+message SendRequest {
+  int64 user_id = 1;
+  string content = 2;
+}
+
+message SendResponse {
+  string message_id = 1;
+}
+
+// UserService 用户服务。
+service UserService {
+  // GetUser 根据 ID 获取用户。
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  // UpdateUser 更新用户信息。
+  // id 为必填。
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  // WatchUsers 持续推送用户变更（服务端流式，HTTP 适配层会跳过）。
+  rpc WatchUsers(WatchUsersRequest) returns (stream WatchUsersEvent);
+}
+
+// NotificationService 通知服务（单文件多 service 演示）。
+service NotificationService {
+  // Send 给指定用户发送通知。
+  rpc Send(SendRequest) returns (SendResponse);
+}
