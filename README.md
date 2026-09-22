@@ -17,7 +17,7 @@
 go install github.com/Linuxea/protoc-gen-gin@latest   # 或本地: go install .
 ```
 
-生成的代码依赖 `github.com/Linuxea/protoc-gen-gin/ginruntime` 运行时包（错误体类型 + 状态码映射），业务模块需要依赖本模块。
+插件本体兼容 Go >= 1.19（`go install` 侧）。生成的代码依赖 `github.com/Linuxea/protoc-gen-gin/ginruntime` 运行时包（错误体类型 + 状态码映射），业务模块需要依赖本模块；example 子模块因使用较新的 grpc API 需要 Go >= 1.24 构建，仅供参考。
 
 ## 用法
 
