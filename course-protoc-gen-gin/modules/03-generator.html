@@ -1,0 +1,254 @@
+<section class="module" id="module-3" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">代码生成机器</h1>
+      <p class="module-subtitle">167 行的车间重地：合同进，代码出</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">曲奇模具车间</h2>
+        <p>想象一间曲奇工厂：<strong>同一套模具，压不同的面团</strong>。 GetUser 是巧克力味，UpdateUser 是抹茶味——压出来的形状一模一样，只是包装上印的名字不同。</p>
+        <p>generator.go 就是这套模具。它拿到合同后，对每个方法做同样的事：<strong>填名字、印代码</strong>。点「Next Step」看整条生产线：</p>
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"一切从合同开始：user/v1/user.proto 声明了 2 个服务、4 个方法（其中 1 个是流式）"},
+          {"highlight":"flow-actor-1","label":"protoc 读取合同，解析成结构化卷宗","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"卷宗递进插件：main.go 转手交给车间 generator.go"},
+          {"highlight":"flow-actor-3","label":"车间逐方法过检：一元的进模具，流式的跳过并记警告"},
+          {"highlight":"flow-actor-3","label":"模具启动：一行行打印出 handler 函数、swag 注解、路由注册","packet":false,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-4","label":"产出 user.gin.pb.go：3 个 handler + 2 个注册函数 + 1 条流式警告注释","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-5","label":"业务侧运行 swag init：扫描注解，产出 swagger.json","packet":true,"from":"actor-4","to":"actor-5"},
+          {"highlight":"flow-actor-5","label":"前端同学打开 /swagger/index.html，直接在网页上试调接口"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">📜</div>
+              <span>user.proto</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">⚙️</div>
+              <span>protoc</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">🏭</div>
+              <span>插件车间</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">📄</div>
+              <span>user.gin.pb.go</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-5">
+              <div class="flow-actor-icon">📚</div>
+              <span>Swagger 文档</span>
+            </div>
+          </div>
+
+          <div class="flow-packet" id="flow-packet"></div>
+
+          <div class="flow-step-label" id="flow-label">点「Next Step」启动生产线</div>
+
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">模具本体：打印，而不是思考</h2>
+        <p>车间里没有智能，只有一行行 <code>g.P()</code>——「print，往文件里打印一行字」。名字从合同里来，模板是写死的：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · internal/generator.go</span>
+            <pre><code><span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"func "</span> + name + <span class="code-string">"(cli "</span> + client + <span class="code-string">") "</span> + handlerFunc + <span class="code-string">" {"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\treturn func(c *"</span> + ctxType + <span class="code-string">") {"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\tvar req "</span> + reqType)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\tif err := c.ShouldBindJSON(&amp;req); err != nil &amp;&amp; !"</span> + errorsIs + <span class="code-string">"(err, "</span> + ioEOF + <span class="code-string">") {"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\t\tc.JSON("</span> + badRequest + <span class="code-string">", "</span> + runtimeErr + <span class="code-string">"{Code: 3, Message: \"invalid request: \" + err.Error()}) // 3 = codes.InvalidArgument"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\t\treturn"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\t}"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\tresp, err := cli."</span> + m.GoName + <span class="code-string">"(c.Request.Context(), &amp;req)"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\tif err != nil {"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\t\thttpStatus, code, message := "</span> + runtimeHTTPStatus + <span class="code-string">"(err)"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\t\tc.JSON(httpStatus, "</span> + runtimeErr + <span class="code-string">"{Code: code, Message: message})"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\t\treturn"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\t}"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t\tc.JSON("</span> + okStatus + <span class="code-string">", resp)"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"\t}"</span>)</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"}"</span>)</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">人话翻译</span>
+            <div class="translation-lines">
+              <p class="tl">「打印函数的第一行。name 是合同里拼好的名字，比如 UserServiceGetUserHandler——模具只是把名字嵌进固定句式。」</p>
+              <p class="tl">「打印接待逻辑：准备请求表格、解析 JSON、不合格退货 400……」</p>
+              <p class="tl">「注意这一行的秘密：Code: 3 是写死的。gRPC 世界里 3 号错误表示「参数不合法」——下一模块会认识全部错误黑话。」</p>
+              <p class="tl">「打印拨号那行：cli. + m.GoName。GetUser 方法就拨 GetUser，UpdateUser 就拨 UpdateUser——模具不关心拨给谁。」</p>
+              <p class="tl">「错误找翻译官 HTTPStatus，成功就打包 200 返回。每个 handler 的下半场永远一模一样。」</p>
+            </div>
+          </div>
+        </div>
+        <p>看明白了吗？你在 Module 1 读过的那个 handler 函数，就是这 16 行打印出来的成品。<strong>模具里的每一行字，对应成品里的一行代码。</strong></p>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">「aha」时刻</strong>
+            <p>读生成式代码的诀窍：<strong>别追机器，追模具</strong>。成品有一万个，模具只有一套。想理解（或修改）所有 handler 的行为，只需要读这 16 行。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">车间里的三个聪明设计</h2>
+        <p>模具简单，但车间并不傻。三个细节值得抄进你的笔记本：</p>
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🌊</div>
+            <h4 class="pattern-title">流式方法：跳过，但大声说</h4>
+            <p class="pattern-desc">流式方法装不进 HTTP 一问一答，直接跳过——但警告写两遍：控制台 stderr 一遍，生成代码里留一行 WARNING 注释。静默跳过是坑用户，大声跳过是尊重用户。</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">💬</div>
+            <h4 class="pattern-title">合同注释，直达文档</h4>
+            <p class="pattern-desc">proto 里写给同事看的方法注释（// GetUser 根据 ID 获取用户），被原样搬进 @Description，最终出现在 Swagger 文档上。写一遍，处处生效。</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">📭</div>
+            <h4 class="pattern-title">空请求体：放行不报错</h4>
+            <p class="pattern-desc">严格来说空 body 是非法 JSON，但被 io.EOF 例外放行——当成「空表格」交给服务端校验兜底。对调用方宽容一分，集成就顺一分。</p>
+          </div>
+        </div>
+        <p>「注释直达文档」的实现只有 4 行——这是整个车间我最喜欢的一段：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · internal/generator.go</span>
+            <pre><code><span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"// @Summary      "</span> + m.GoName)</span>
+<span class="code-line"><span class="code-keyword">for</span> _, line := <span class="code-keyword">range</span> <span class="code-function">commentLines</span>(m.Comments) {</span>
+<span class="code-line">	g.<span class="code-function">P</span>(<span class="code-string">"// @Description  "</span> + line)</span>
+<span class="code-line">}</span>
+<span class="code-line">g.<span class="code-function">P</span>(<span class="code-string">"// @Router       "</span> + route + <span class="code-string">" [post]"</span>)</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">人话翻译</span>
+            <div class="translation-lines">
+              <p class="tl">「文档摘要 = 方法名。」</p>
+              <p class="tl">「合同里这个方法的每一条注释，逐行搬进 @Description——你在 proto 里写的『id 为必填』会出现在 API 文档里。」</p>
+              <p class="tl">「最后印上路由地址和请求方式。注解和代码同生同灭，永不漂移。」</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">注解：藏在注释里的文档</h2>
+        <p>生成代码的函数上方有一坨 <code>// @Summary ...</code> 格式的注释——这不是普通注释，是
+          <span class="term" data-definition="swag 注解：一种写在函数注释里的固定格式标记。工具 swag 扫描这些标记，自动生成 Swagger 格式的 API 文档。">swag 注解</span>。
+          它们是给机器看的：</p>
+        <div class="badge-list animate-in">
+          <div class="badge-item">
+            <code class="badge-code">@Summary</code>
+            <span>接口名——文档目录里的一行标题</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">@Description</code>
+            <span>接口说明——内容来自你在 proto 里写的注释</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">@Param / @Success</code>
+            <span>请求长什么样、成功返回什么——前端照着填表</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">@Router</code>
+            <span>地址 + 请求方式——HTTP 世界的门牌号</span>
+          </div>
+        </div>
+        <p>业务侧跑一遍 <code>swag init --parseDependency</code>，这些注解就变成 swagger.json，再挂一个网页——前端同学就有了可交互的接口说明书。</p>
+        <div class="callout callout-info">
+          <div class="callout-icon">🧩</div>
+          <div class="callout-content">
+            <strong class="callout-title">顺便说一句</strong>
+            <p>项目笔记里有一条硬约束：handler 必须保持为<strong>顶层具名函数</strong>。swag 只认「包级函数声明上方的注释」——要是图时髦改成嵌套函数或闭包，注解会全部静默失效。文档工具认死理，代码就得迁就它。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">小测验：你能指挥这间车间吗</h2>
+        <div class="quiz-container" id="quiz-module3">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="完全正确！commentLines 收集合同里方法的注释行，逐行印成 @Description。文档描述的源头就是 proto 注释——改合同，文档跟着变。"
+               data-explanation-wrong="回忆「合同注释直达文档」那张卡片：@Description 的内容来自 proto 文件里方法上方的注释（// 开头的那些行），由 commentLines 收集搬运。">
+            <h3 class="quiz-question">你想让 GetUser 在 API 文档里的描述更详细。应该改哪里？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>直接手改 user.gin.pb.go 里的 @Description</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>改 user.proto 里 GetUser 方法上方的注释，然后重新生成</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>在 Swagger 网页上手动编辑接口描述</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="没错！这正是车间里唯一「打印非模板内容」的地方——\t 会变成缩进，+ 号把名字和句式拼在一起。找到模板就找到了改动点，然后 go install 重建插件、重跑 protoc、重新生成产物。"
+               data-explanation-wrong="想清楚谁在决定输出内容：handler 的每一行都由 generator.go 里对应的 g.P(...) 打印出来。想改所有 handler 的样子，就要改打印它们的模具。">
+            <h3 class="quiz-question">团队想把路由风格从 POST /包名.服务/方法 改成更简洁的 /api/服务/方法。应该动哪里？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>改 example/main.go 里注册路由的代码</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>改 user.proto 里的 package 声明</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>改 internal/generator.go 里拼接路由字符串的 g.P 行，重新安装插件并重新生成</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="聪明！@Router、@Param 这些注解写在顶层函数的 godoc 注释区，而只有包级具名函数才有 godoc。swag 按这个铁律找注解——把它包进别的函数，注解就「隐身」了。这是项目笔记里记录过的真实陷阱。"
+               data-explanation-wrong="想象 swag 的工作方式：它扫描代码文件，只认「文件顶层、函数声明正上方」的注释块。什么样的函数声明才配拥有这块注释区？">
+            <h3 class="quiz-question">同事提议：把 handler 改成在 Register 函数内部创建的匿名函数，代码更紧凑。为什么项目笔记明确禁止？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>swag 只解析包级具名函数上方的注释，改成嵌套或匿名函数会让全部注解静默失效</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>匿名函数在 Go 里运行速度更慢</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Go 编译器不允许在函数内定义函数</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

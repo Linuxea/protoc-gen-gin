@@ -1,0 +1,255 @@
+<section class="module" id="module-5" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">怎么证明它没坏</h1>
+      <p class="module-subtitle">一台写代码的机器，更需要证明自己写出来的代码是对的</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">一出话剧的三种检查</h2>
+        <p>剧场排一出戏：<strong>裁缝检查每道缝线</strong>（部件级）、<strong>全组带妆彩排</strong>（整体级）、<strong>首演见观众</strong>（生产环境）。</p>
+        <p>缝线再完美，也代替不了彩排——但没人愿意把问题留到首演。软件测试同理，而且这个项目把「彩排」做到了极致：<strong>整条 HTTP → gRPC 链路在测试里完整跑通，却不占用任何网络端口</strong>。</p>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">「aha」时刻</strong>
+            <p>生成代码的测试有个天然优势：<strong>模具只有一套，所以测一个等于测全部</strong>。手写代码要祈祷每个程序员都写对；生成代码只需验证模具——这正是「代码生成」在工程质量上的最大红利。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">四道防线</h2>
+        <p>项目布了四层检查，从便宜到昂贵、从局部到整体：</p>
+        <div class="step-cards stagger-children">
+          <div class="step-card animate-in">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>单测模具：生成的内容对不对</strong>
+              <p>TestGenerateFileContent 用一份迷你合同跑车间，断言产出包含关键零件：handler 签名、路由行、注解、WARNING 注释——一共 18 条，缺一条就报警。</p>
+            </div>
+          </div>
+          <div class="step-card animate-in">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>单测字典：翻译对不对</strong>
+              <p>ginruntime 的测试逐条过映射表：NotFound→404、包了一层的错误也能拆开、不认识的兜底 500。8 个
+                <span class="term" data-definition="用例：一条「给定输入 X，应该得到输出 Y」的检查。一组用例覆盖一组场景。">用例</span>，把翻译官钉得死死的。</p>
+            </div>
+          </div>
+          <div class="step-card animate-in">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>带妆彩排：
+              <span class="term" data-definition="E2E（端到端）测试：从最外层入口（HTTP 请求）一路打到最底层（业务数据），整条链路真实跑一遍。">E2E</span> 全链路</strong>
+              <p>起一个内存里的 gRPC 服务端 + 真实的 gin 引擎，发真 HTTP 请求：200 成功、404 不存在、400 坏 JSON、流式路由必须 404——六幕戏全过。</p>
+            </div>
+          </div>
+          <div class="step-card animate-in">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <strong>连文档一起验</strong>
+              <p>TestSwaggerDocs 在测试里真的重跑一遍 swag init，然后解析 swagger.json：三条路径必须在、流式方法必须不在、错误体定义必须存在。文档说谎也会被抓。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">彩排的秘诀：不占舞台的电话线</h2>
+        <p>E2E 要跑真的 gRPC，难道要在测试里监听真端口？不用。
+          <span class="term" data-definition="bufconn：gRPC 官方测试工具。它在内存里架一根「电话线」，客户端和服务端像真网络一样通话，但数据从不离开进程——快、稳、不占端口。">bufconn</span>
+          在内存里架线，
+          <span class="term" data-definition="httptest：Go 标准库的 HTTP 测试工具。发请求、收响应，全程在内存里完成，不需要真的启动服务器。">httptest</span>
+          在内存里收发 HTTP。看彩排现场怎么搭：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · example/e2e_test.go</span>
+            <pre><code><span class="code-line">lis := bufconn.<span class="code-function">Listen</span>(<span class="code-number">1</span> &lt;&lt; <span class="code-number">20</span>)</span>
+<span class="code-line">grpcSrv := grpc.<span class="code-function">NewServer</span>()</span>
+<span class="code-line">userv1.<span class="code-function">RegisterUserServiceServer</span>(grpcSrv, &amp;userService{users: <span class="code-keyword">map</span>[<span class="code-keyword">int64</span>]*userv1.GetUserResponse{</span>
+<span class="code-line">	<span class="code-number">1</span>: {Id: <span class="code-number">1</span>, Name: <span class="code-string">"alice"</span>, Email: <span class="code-string">"alice@example.com"</span>},</span>
+<span class="code-line">}})</span>
+<span class="code-line">t.<span class="code-function">Cleanup</span>(grpcSrv.Stop)</span>
+<span class="code-line"><span class="code-keyword">go func</span>() { _ = grpcSrv.<span class="code-function">Serve</span>(lis) }()</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">人话翻译</span>
+            <div class="translation-lines">
+              <p class="tl">「架一根内存电话线（1MB 容量），不走网卡、不占端口。」</p>
+              <p class="tl">「起一个真的 gRPC 服务端——注意，和生产的代码一模一样，不是简化版。」</p>
+              <p class="tl">「业务逻辑就用真的：用户表里预置一个 alice（ID 1）。」</p>
+              <p class="tl">「t.Cleanup 是自动收场：测试结束，服务自动关停，不留垃圾。」</p>
+              <p class="tl">「后台开演。接下来生成的 handler 会拨这根内存线——整条链路无一处是假的，除了网线。」</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">剧场外的守则</h2>
+        <p>项目笔记（AGENTS.md）里记着几条用真实教训换来的铁律——每条背后都是一次踩坑：</p>
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🔒</div>
+            <h4 class="pattern-title">版本号钉死</h4>
+            <p class="pattern-desc">go.mod 的 go 1.19 和依赖版本绝不升级——为了老工具链还能一行命令安装。有人跑过新版 tidy，指令被改写成三段式，老 Go 直接装不上。<strong>兼容性是承诺，不是偏好。</strong></p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">📦</div>
+            <h4 class="pattern-title">生成产物入库</h4>
+            <p class="pattern-desc">user.gin.pb.go 这类生成文件直接 commit 进仓库。使用者不必装插件就能编译。<strong>代价是：改了模具必须同步重新生成</strong>，否则测试立刻提醒你。</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">🏷️</div>
+            <h4 class="pattern-title">发布只走 tag</h4>
+            <p class="pattern-desc">用户 go install@latest 拉的是 git tag 版本。所以打 tag 的同时必须更新代码里的 Version 常量——版本号写两处，一处是给 git 看的，一处是给生成文件头看的。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">全景回顾</h2>
+        <p>五站旅程走完，把整条流水线一次串起来：</p>
+        <div class="flow-steps animate-in">
+          <div class="flow-step">
+            <div class="flow-step-num">📜</div>
+            <p>写合同<br>.proto 文件</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">⚙️</div>
+            <p>protoc 编译<br>带上 --gin_out</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">🏭</div>
+            <p>插件车间<br>模具压出代码</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">📄</div>
+            <p>user.gin.pb.go<br>入库供人审阅</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">🧪</div>
+            <p>四层测试<br>彩排全过</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">🚀</div>
+            <p>业务挂载<br>HTTP + Swagger 上线</p>
+          </div>
+        </div>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">带走的一句话</strong>
+            <p>这个项目教的不只是一个插件，而是一种工程哲学：<strong>重复的事交给模具，模具的行为交给测试，测试的信心交给你和 AI</strong>。下次你让 AI 写二十个相似接口时，可以问它：「这事值得做成代码生成吗？」</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">毕业测验：你会怎么处理这些情况</h2>
+        <div class="quiz-container" id="quiz-module5">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！生成产物是入库的静态文件，插件源码变了它不会自己变。完整流程：go install 重建插件 → 在 proto 目录重跑 protoc → 提交新的生成产物。项目笔记里把这步列为硬流程。"
+               data-explanation-wrong="回忆「生成产物入库」那张卡片：example 里的 user.gin.pb.go 是某次生成的快照。要让行为变化，快照本身得重拍。">
+            <h3 class="quiz-question">你给插件加了新特性并提交了代码。同事拉取后说「example 里没变化」。你的第一反应是？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>让同事清空缓存重试</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>生成产物没重新生成——需要 go install 后重跑 protoc 并提交新产物</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>同事的 Go 版本太老了</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="正确！bufconn 的电话线完全架在进程内存里，没有端口、没有网卡。所以测试可以并行跑、不会端口冲突，也不会被防火墙打扰。"
+               data-explanation-wrong="回忆彩排现场的第一行代码：bufconn.Listen 架的是一根内存电话线。它和真实的网络监听有什么本质区别？">
+            <h3 class="quiz-question">E2E 测试里的 gRPC 服务端「监听」在哪里？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>本地 9091 端口</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>随机分配的高位端口</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>不占任何端口——bufconn 是纯内存连接</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="没错！TestSwaggerDocs 在测试里重跑 swag init 并解析 swagger.json，断言新路径必须出现。文档是生成出来的，所以也能被测试钉住——这是「文档即代码」的完整闭环。"
+               data-explanation-wrong="想想第四道防线：有个测试会真的重跑 swag init，然后逐条检查 paths 列表。新方法没进文档，这道防线会怎样反应？">
+            <h3 class="quiz-question">团队加了个新 RPC 方法 ListUsers。怎么确保它一定出现在 Swagger 文档里，而不是被悄悄漏掉？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>在 TestSwaggerDocs 的路径断言清单里加上新路径——文档缺失会让测试红掉</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>发版后手动打开 Swagger 网页检查一遍</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>写一段注释提醒大家注意文档更新</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="正是！这是项目笔记里记录的真实事故：新版 Go 的 tidy 把 go 指令改写成三段式，老工具链 go install 当场失败。兼容性承诺一旦做出，工具链的每个动作都要过一遍脑子。"
+               data-explanation-wrong="这不是性能问题，也不是新语法问题——想想「谁在安装这个工具」：项目的承诺是任何还用着老 Go 的机器都能一行命令装上它。什么改动会破坏这个承诺？">
+            <h3 class="quiz-question">为什么 go.mod 死死钉住 go 1.19、依赖版本也不敢升？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>因为新版 Go 编译出来的程序运行更慢</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>为了老工具链的用户还能 go install——承诺兼容，就不能让依赖指令悄悄变成新版格式</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>因为 grpc 库在新版本里被删除了</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

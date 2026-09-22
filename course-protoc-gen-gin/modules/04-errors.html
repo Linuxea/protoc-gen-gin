@@ -1,0 +1,245 @@
+<section class="module" id="module-4" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">错误翻译官</h1>
+      <p class="module-subtitle">两个世界各说各的错误黑话——总得有人带着对照表</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">两个世界的错误方言</h2>
+        <p>gRPC 报错不说「404」，它说「code 5」。HTTP 世界正相反。这就像两个国家的外交部：<strong>都在描述同一件倒霉事，用的却是各自的公文编号</strong>。</p>
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🔒</div>
+            <h4 class="pattern-title">gRPC：数字密码</h4>
+            <p class="pattern-desc">3 = 参数不合法，5 = 找不到，14 = 服务暂不可用……共 17 个标准
+              <span class="term" data-definition="状态码：给错误编的号。有了编号，程序不用解析文字就能判断出了什么类型的错——404 找不到、503 暂时不可用，都是编号。">状态码</span>，机器好读，人看不懂。</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🌐</div>
+            <h4 class="pattern-title">HTTP：全网通用的红绿灯</h4>
+            <p class="pattern-desc">400 请求有误、404 没找到、503 暂时歇菜……每个浏览器、每个前端框架都认识它们。</p>
+          </div>
+        </div>
+        <p>前端同学拿到 code 5 会一脸茫然，拿到 404 却立刻明白。<strong>ginruntime 包里的那张对照表，就是翻译官的字典。</strong></p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">翻译官的工位</h2>
+        <p>整张字典加上翻译流程，一共 53 行。核心是这位 <code>HTTPStatus</code>——每个生成 handler 出错时都会来敲它的门：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · ginruntime/runtime.go</span>
+            <pre><code><span class="code-line"><span class="code-keyword">func</span> <span class="code-function">HTTPStatus</span>(err <span class="code-keyword">error</span>) (httpStatus <span class="code-keyword">int</span>, grpcCode <span class="code-keyword">int32</span>, message <span class="code-keyword">string</span>) {</span>
+<span class="code-line">	<span class="code-keyword">if</span> err == <span class="code-keyword">nil</span> {</span>
+<span class="code-line">		<span class="code-keyword">return</span> http.StatusOK, <span class="code-number">0</span>, <span class="code-string">""</span></span>
+<span class="code-line">	}</span>
+<span class="code-line">	st, _ := status.<span class="code-function">FromError</span>(err)</span>
+<span class="code-line">	httpStatus, ok := grpcToHTTP[st.<span class="code-function">Code</span>()]</span>
+<span class="code-line">	<span class="code-keyword">if</span> !ok {</span>
+<span class="code-line">		httpStatus = http.StatusInternalServerError</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-keyword">return</span> httpStatus, <span class="code-keyword">int32</span>(st.<span class="code-function">Code</span>()), st.<span class="code-function">Message</span>()</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">人话翻译</span>
+            <div class="translation-lines">
+              <p class="tl">「进门的必须是个错误，还要能拆出三样东西：HTTP 码、gRPC 码、人话说明。」</p>
+              <p class="tl">「没出错？那不用翻译，直接 200 放行。」</p>
+              <p class="tl">「status.FromError 是拆信封：不管错误包了多少层，都把里面的 gRPC 错误抽出来。」</p>
+              <p class="tl">「拿 gRPC 码查字典 grpcToHTTP。查不到？兜底 500——翻译官永远不空手而归。」</p>
+              <p class="tl">「三样东西一起交还：状态码给浏览器看，gRPC 码留作凭据，message 给人读。」</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">「aha」时刻</strong>
+            <p>注意「兜底 500」这个细节——这是防御式设计的缩影：<strong>翻译官自己绝不能成为新的故障点</strong>。遇到不认识的错误，宁可报个笼统的 500，也不能崩掉或吞掉。边界层代码的第一美德是「不添乱」。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">跟一次失败走一趟</h2>
+        <p>上次旅行一帆风顺，这次换个剧本：查一个<strong>不存在</strong>的用户（ID 99）。点「Next Message」：</p>
+        <div class="chat-window" id="chat-module4">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="browser" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">浏</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">浏览器（前端）</span>
+                <p>POST /user.v1.UserService/GetUser，请求体：{"id": 99}</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="handler" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">H</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Gin Handler</span>
+                <p>表格合格，拨号：GetUser(Id: 99)。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="grpcsrv" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">服</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">gRPC 服务端</span>
+                <p>查库……没有 99 这个人。退回错误：NotFound（码 5），“user 99 not found”。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="handler" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">H</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Gin Handler</span>
+                <p>电话里报错了。前端听不懂「码 5」——HTTPStatus 翻译官，麻烦了！</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="translator" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">译</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">HTTPStatus（翻译官）</span>
+                <p>拆信封……gRPC 码 5。查字典：5 → 404。打包：HTTP 404 + {code: 5, message: “user 99 not found”}。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="browser" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">浏</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">浏览器（前端）</span>
+                <p>404 + code 5——看懂了，是「用户不存在」！弹个友好提示：查无此人 🙂</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-module4-typing" style="display:none">
+            <div class="chat-avatar" id="chat-module4-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">为什么错误体里还留着 gRPC 码？</h2>
+        <p>404 已经说明「没找到」了，响应体里的 <code>{"code":5,...}</code> 是不是多余？不多余——它俩分工不同：</p>
+        <div class="badge-list animate-in">
+          <div class="badge-item">
+            <code class="badge-code">HTTP 404</code>
+            <span>给<strong>机器</strong>看的红绿灯：浏览器、网关、监控全靠它路由和告警</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">"code": 5</code>
+            <span>给<strong>前端逻辑</strong>用的精确凭据：多个服务共用一套码，排查时能对上 gRPC 侧的日志</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">"message"</code>
+            <span>给<strong>人</strong>读的一句话说明：直接弹给用户也不丢人</span>
+          </div>
+        </div>
+        <div class="callout callout-info">
+          <div class="callout-icon">🧩</div>
+          <div class="callout-content">
+            <strong class="callout-title">顺便说一句</strong>
+            <p>这张对照表不是发明的，是<strong>抄行业标杆 grpc-gateway 的</strong>（Google 官方的同类项目）。跟大部队用同一张表，前端就少学一套方言——选约定俗成，往往优于自作聪明。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">动手配对：你来当翻译官</h2>
+        <p>把左边的 gRPC 错误码拖到右边对应的 HTTP 状态码上，然后点「Check Matches」：</p>
+        <div class="dnd-container">
+          <div class="dnd-chips">
+            <div class="dnd-chip" draggable="true" data-answer="notfound">NotFound (5)</div>
+            <div class="dnd-chip" draggable="true" data-answer="invalid">InvalidArgument (3)</div>
+            <div class="dnd-chip" draggable="true" data-answer="unavailable">Unavailable (14)</div>
+            <div class="dnd-chip" draggable="true" data-answer="unauthenticated">Unauthenticated (16)</div>
+          </div>
+          <div class="dnd-zones">
+            <div class="dnd-zone" data-correct="notfound">
+              <p class="dnd-zone-label">404 · 请求的东西不存在</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="invalid">
+              <p class="dnd-zone-label">400 · 请求参数有误</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="unavailable">
+              <p class="dnd-zone-label">503 · 服务暂时不可用</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+            <div class="dnd-zone" data-correct="unauthenticated">
+              <p class="dnd-zone-label">401 · 没有登录 / 身份无效</p>
+              <div class="dnd-zone-target">拖到这里</div>
+            </div>
+          </div>
+          <button class="btn" onclick="checkDnD()">Check Matches</button>
+          <button class="btn" onclick="resetDnD()">Reset</button>
+        </div>
+        <br>
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！AlreadyExists（码 6）映射 409 Conflict——「已经存在，创建冲突」。字典里每个 gRPC 码都有固定座位。"
+               data-explanation-wrong="提示：409 的英文是 Conflict（冲突）。gRPC 里表示「东西已经存在、闹冲突」的码是哪一个？对照 Module 1 的 README 对照表想想。">
+            <h3 class="quiz-question">服务端创建用户时发现账号已存在，返回 codes.AlreadyExists（码 6）。前端收到的 HTTP 状态是？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>403 Forbidden</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>409 Conflict</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>500 Internal Server Error</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="正是！翻译官对不认识的错误兜底 500，但 gRPC 服务端宕机时会返回明确的 Unavailable（14）——它有自己的座位 503。状态码就是第一手的体检报告。"
+               data-explanation-wrong="回忆流程：Handler 调用失败后把错误交给 HTTPStatus。gRPC 客户端连不上服务端时，错误码是 Unavailable（14）。查查它的座位是几号？">
+            <h3 class="quiz-question">线上告警：所有接口突然集体返回 503。按这条链路，你的第一个怀疑对象是？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>前端的 JSON 格式写错了</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>翻译官字典坏了，把对的错翻成 503</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>后端的 gRPC 服务挂了或连不上（Unavailable → 503），先去查服务端</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

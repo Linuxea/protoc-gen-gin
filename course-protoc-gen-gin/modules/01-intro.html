@@ -1,0 +1,280 @@
+<section class="module" id="module-1" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">这个项目是干嘛的</h1>
+      <p class="module-subtitle">一台「会写代码的机器」：把 gRPC 服务自动翻译成 HTTP 接口</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">两种插座，一个世界</h2>
+        <p>想象你带着笔记本电脑出国：你的插头是国标，墙上的插座是欧标。<strong>电是一样的电，形状对不上。</strong></p>
+        <p>后端世界也有两种「插座」：服务内部用
+          <span class="term" data-definition="gRPC 是一种高性能的服务间通信方式：两边的程序像打内部电话一样直接调用对方的函数。它很快，但需要两边都说同一种「方言」。">gRPC</span>
+          通话，而网页、手机 App、外部合作伙伴只会说
+          <span class="term" data-definition="HTTP 是互联网的公共语言——浏览器打开网页、App 调服务器，用的都是它。人人都会，无处不在。">HTTP</span>。</p>
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">⚡</div>
+            <h4 class="pattern-title">gRPC：内部高速电话线</h4>
+            <p class="pattern-desc">微服务之间互相调用用它在行——快、强类型、自带错误码。但浏览器说不了这门方言。</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🌐</div>
+            <h4 class="pattern-title">HTTP + JSON：世界通用语</h4>
+            <p class="pattern-desc">任何前端、任何第三方都能发一个
+              <span class="term" data-definition="JSON 是一种人 和 程序 都能读的文本格式，用来描述数据，比如 {&quot;id&quot;: 1}。它是 HTTP 世界里最通用的「快递包装」。">JSON</span>
+              请求过来。慢一点，但谁都会用。</p>
+          </div>
+        </div>
+        <p>这个项目就是那个<strong>转换插头</strong>：它自动生成一层翻译代码，让每个 gRPC 方法都能被 HTTP 调用。</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">怎么做到的？读合同，吐代码</h2>
+        <p>每个 gRPC 服务都始于一份
+          <span class="term" data-definition="proto 文件是服务的「合同」，用 Protobuf 语言写成，列出了每个方法的名字、参数和返回值。合同一定，双方按合同办事。">.proto 合同文件</span>。
+          这个项目是一个
+          <span class="term" data-definition="protoc 是官方的「合同编译器」，读 .proto 文件然后产出代码。插件是挂在它身上的外挂工具，每个插件负责产出一种额外产物——本插件负责产出 gin HTTP 适配层。">protoc 插件</span>：
+          编译合同时，它在旁边加产一批 Go 文件。</p>
+        <div class="step-cards stagger-children">
+          <div class="step-card animate-in">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>你写下合同</strong>
+              <p>user.proto 里声明：「UserService 有个 GetUser 方法，收 ID，回用户信息」</p>
+            </div>
+          </div>
+          <div class="step-card animate-in">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>protoc 带上本插件一起编译</strong>
+              <p>命令行里加一个 --gin_out 参数，插件就参与开工</p>
+            </div>
+          </div>
+          <div class="step-card animate-in">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>每个方法得到一条 HTTP 路由</strong>
+              <p>产出的 user.gin.pb.go 里，GetUser 变成了 POST /user.v1.UserService/GetUser，连
+                <span class="term" data-definition="Swagger 是描述 API 的文档标准，配一个可交互的网页 UI，前端同学能在上面直接试调接口。">API 文档</span>注解都写好了</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">「aha」时刻</strong>
+            <p>
+              <span class="term" data-definition="代码生成：让程序写程序。程序员把重复的模板规则告诉机器，机器保证每次都写得一模一样——不知疲倦、不会手滑。">生成代码</span>
+              不是魔法。它只是把程序员要重复写一万遍的模板交给程序去写。你需要的是学会<strong>读</strong>它，而不是<strong>写</strong>它。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">跟着一次请求走一趟</h2>
+        <p>example 目录里有一个能跑的完整演示。现在，一个前端同学想查 ID 为 1 的用户——看看这条请求在幕后经历了什么。点「Next Message」逐条播放：</p>
+        <div class="chat-window" id="chat-module1">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="browser" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">浏</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">浏览器（前端）</span>
+                <p>POST /user.v1.UserService/GetUser，请求体：{"id": 1}</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="gin" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">G</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Gin 路由（HTTP 层）</span>
+                <p>路径匹配成功！这条 POST 路由注册过。UserServiceGetUserHandler，接客了。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="gin" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">G</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Gin Handler</span>
+                <p>JSON 解析成 GetUserRequest{Id: 1}，格式没问题。gRPC 客户端，麻烦转交服务端。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="grpccli" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">客</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">gRPC 客户端（翻译官）</span>
+                <p>收到，打包成 gRPC 协议，内部电话线拨号：GetUser(Id: 1)。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="grpcsrv" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">服</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">gRPC 服务端（真正的业务）</span>
+                <p>查库……ID 1 是 alice。返回 GetUserResponse{Name: alice, Email: alice@example.com}。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="grpccli" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">客</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">gRPC 客户端</span>
+                <p>应答收到，原样带回给 Handler。</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="6" data-sender="gin" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">G</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Gin Handler</span>
+                <p>包装成 HTTP 200 + JSON，发回浏览器！</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="7" data-sender="browser" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">浏</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">浏览器</span>
+                <p>{"id":1,"name":"alice","email":"alice@example.com"} —— 拿到了，谢谢！</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-module1-typing" style="display:none">
+            <div class="chat-avatar" id="chat-module1-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+        <p>注意：HTTP 世界从头到尾<strong>没有直接碰过</strong>业务逻辑。所有活儿都转交给 gRPC 服务端——这就是「适配层」的含义。</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">机器吐出来的代码长什么样</h2>
+        <p>这是生成文件 user.gin.pb.go 里的真身（一字未改）。左边是 Go 代码，右边是人话：</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · user.gin.pb.go</span>
+            <pre><code><span class="code-line"><span class="code-keyword">func</span> <span class="code-function">UserServiceGetUserHandler</span>(cli UserServiceClient) gin.HandlerFunc {</span>
+<span class="code-line">	<span class="code-keyword">return func</span>(c *gin.Context) {</span>
+<span class="code-line">		<span class="code-keyword">var</span> req GetUserRequest</span>
+<span class="code-line">		<span class="code-keyword">if</span> err := c.<span class="code-function">ShouldBindJSON</span>(&amp;req); err != <span class="code-keyword">nil</span> &amp;&amp; !errors.<span class="code-function">Is</span>(err, io.EOF) {</span>
+<span class="code-line">			c.<span class="code-function">JSON</span>(http.StatusBadRequest, ginruntime.Error{Code: <span class="code-number">3</span>, Message: <span class="code-string">"invalid request: "</span> + err.<span class="code-function">Error</span>()}) <span class="code-comment">// 3 = codes.InvalidArgument</span></span>
+<span class="code-line">			<span class="code-keyword">return</span></span>
+<span class="code-line">		}</span>
+<span class="code-line">		resp, err := cli.<span class="code-function">GetUser</span>(c.Request.<span class="code-function">Context</span>(), &amp;req)</span>
+<span class="code-line">		<span class="code-keyword">if</span> err != <span class="code-keyword">nil</span> {</span>
+<span class="code-line">			httpStatus, code, message := ginruntime.<span class="code-function">HTTPStatus</span>(err)</span>
+<span class="code-line">			c.<span class="code-function">JSON</span>(httpStatus, ginruntime.Error{Code: code, Message: message})</span>
+<span class="code-line">			<span class="code-keyword">return</span></span>
+<span class="code-line">		}</span>
+<span class="code-line">		c.<span class="code-function">JSON</span>(http.StatusOK, resp)</span>
+<span class="code-line">	}</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">人话翻译</span>
+            <div class="translation-lines">
+              <p class="tl">「造一个接待员。他手里握着一位 gRPC 客户端（cli），专门负责 GetUser 这件事。」</p>
+              <p class="tl">「来客人了。先准备一个空表格 req，用来装客人带来的数据。」</p>
+              <p class="tl">「把 JSON 请求体填进表格。如果填不进去（格式错误）——当场退货 400。唯一的例外：客人一个字都没带（io.EOF），算空表格，放行，让服务端去校验。」</p>
+              <p class="tl">「表格合格。拿着它给 gRPC 服务端打电话，等答复。」</p>
+              <p class="tl">「电话里报错了？找翻译官 HTTPStatus 把 gRPC 的错误黑话翻译成 HTTP 状态码，包成统一错误体退回去。」</p>
+              <p class="tl">「一切顺利：答复原样打包成 200 + JSON，交给客人。接待完成。」</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-info">
+          <div class="callout-icon">🧩</div>
+          <div class="callout-content">
+            <strong class="callout-title">顺便说一句</strong>
+            <p>文件名里的 <code>.pb.go</code> 后缀是 Protocol Buffers 生成代码的行业惯例——一眼就知道「这是机器写的，别手改」。手改了，下次生成会被无情覆盖。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">小测验：你学会指挥这台机器了吗</h2>
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="完全正确！流式方法（数据像水流一样持续推送的那种）无法装进「一问一答」的 HTTP 请求里，插件会跳过它们并留下警告——这正是 5 条路由的原因。"
+               data-explanation-wrong="再想想：那 6 个方法里有一个是流式的（WatchUsers）。流式像一条不断推送的水管，塞不进 HTTP 的一问一答，插件会明确跳过它。">
+            <h3 class="quiz-question">同事写了个新的 gRPC 服务：5 个普通方法 + 1 个流式方法（持续推送数据的那种）。用本插件生成 HTTP 层后，会多出几条路由？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>6 条——每个方法都应该能被 HTTP 调用</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>5 条——流式方法会被跳过并留下警告</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>0 条——新服务需要手动写适配层</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="没错！业务逻辑说「用户不存在」（gRPC 码 5 / NotFound），翻译官把它转换成 HTTP 404。状态码没有坏，是数据真的不存在——这说明错误翻译链路工作正常。"
+               data-explanation-wrong="提示：404 在这里不是「路由没配好」，而是业务层的真实回答。整条链路是：服务端说 NotFound（gRPC 码 5）→ 翻译官 → HTTP 404 + 错误体 {code:5}。回忆一下聊天动画里谁是最后说话的。">
+            <h3 class="quiz-question">前端报告：调 GetUser 得到了 HTTP 404，响应体是 {"code":5,"message":"user 99 not found"}。最可能发生了什么？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>路由注册写错了，请求根本没进来</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>gin 服务器崩了</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>业务层如实回答「用户不存在」，被翻译成了 404</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="正是！这类代码是高度重复的模板：第 100 个 handler 和第 1 个只有名字不同。让机器生成，一致、可重复、永不手滑——这是「代码生成」最有价值的场景。"
+               data-explanation-wrong="换个角度想：每个 handler 的结构几乎一模一样，只有名字和数据类型不同。写 100 个这样的函数，手写会怎样？漏一个注解、错一个类型，都难以发现。">
+            <h3 class="quiz-question">为什么要用「生成」而不是让程序员手写这些 HTTP 适配代码？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>这类代码是高度重复的模板，机器生成保证一致且不会手滑漏写</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>因为 Go 语言不允许程序员手写 HTTP 服务</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>生成的代码比手写的运行速度更快</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

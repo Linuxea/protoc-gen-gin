@@ -1,0 +1,271 @@
+<section class="module" id="module-2" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">认识主角们</h1>
+      <p class="module-subtitle">整个项目只有四个角色——比一部话剧的演员表还短</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">先看演员表</h2>
+        <p>这个项目小得惊人：核心逻辑不到 300 行 Go 代码。每个角色各管一摊：</p>
+        <div class="file-tree animate-in">
+          <div class="ft-folder open">
+            <span class="ft-name">protoc-gen-gin/</span>
+            <span class="ft-desc">插件本体（根模块）</span>
+            <div class="ft-children">
+              <div class="ft-file">
+                <span class="ft-name">main.go</span>
+                <span class="ft-desc">前台接待：接收 protoc 递进来的合同</span>
+              </div>
+              <div class="ft-folder open">
+                <span class="ft-name">internal/</span>
+                <span class="ft-desc">车间重地</span>
+                <div class="ft-children">
+                  <div class="ft-file">
+                    <span class="ft-name">generator.go</span>
+                    <span class="ft-desc">真正的机器：把合同变成代码（167 行，灵魂所在）</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ft-folder open">
+                <span class="ft-name">ginruntime/</span>
+                <span class="ft-desc">共享零件箱：生成代码运行时要用的错误类型和翻译表</span>
+                <div class="ft-children">
+                  <div class="ft-file">
+                    <span class="ft-name">runtime.go</span>
+                    <span class="ft-desc">Error 错误体 + gRPC→HTTP 状态码对照表</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ft-folder">
+                <span class="ft-name">example/</span>
+                <span class="ft-desc">样板间：可运行的完整演示 + 全部测试</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="icon-rows stagger-children">
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-1)">🚪</div>
+            <div>
+              <strong>main.go —— 前台接待</strong>
+              <p>只干一件事：接下 protoc 递来的活儿，转交给车间</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🏭</div>
+            <div>
+              <strong>internal/generator.go —— 车间</strong>
+              <p>遍历合同里的每个服务、每个方法，一行行「打印」出生成代码</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-3)">🧰</div>
+            <div>
+              <strong>ginruntime —— 共享零件箱</strong>
+              <p>生成代码运行时要用的零件放这里，所有生成文件共享一份</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-4)">🏠</div>
+            <div>
+              <strong>example —— 样板间</strong>
+              <p>proto 合同、生成产物、能跑的服务、全套测试，什么都是现成的</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">protoc 怎么找到插件？一场从不见面的合作</h2>
+        <p>protoc 和插件的合作方式很特别——像一位<strong>从不见面的顾问</strong>：protoc 把你的合同卷宗从门缝下塞进去（
+          <span class="term" data-definition="标准输入 stdin：程序从「门口递进来的纸条」读数据，而不是从屏幕或文件。管道和重定向就是这么传东西的。">标准输入</span>），
+          顾问在屋里干活，把写好的文件从门缝下塞回来（
+          <span class="term" data-definition="标准输出 stdout：程序把结果「递出门外」的通道。protoc 从这里收走插件生成的文件内容。">标准输出</span>）。</p>
+        <p>protoc 怎么知道该请哪位顾问？靠<strong>命名约定</strong>：可执行文件必须叫 <code>protoc-gen-gin</code>（前缀 protoc-gen 是暗号），放在
+          <span class="term" data-definition="PATH 是系统的「通讯录」：你在终端敲一个命令时，系统按这份名单挨个目录找同名程序。安装工具本质就是把程序放进名单里的某个目录。">PATH</span>
+          目录里。命令行写 <code>--gin_out</code>，它就去请 protoc-gen-<strong>gin</strong>。</p>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE · main.go</span>
+            <pre><code><span class="code-line">protogen.Options{</span>
+<span class="code-line">	ParamFunc: flag.CommandLine.Set,</span>
+<span class="code-line">}.<span class="code-function">Run</span>(<span class="code-keyword">func</span>(gen *protogen.Plugin) <span class="code-keyword">error</span> {</span>
+<span class="code-line">	gen.SupportedFeatures = <span class="code-keyword">uint64</span>(pluginpb.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)</span>
+<span class="code-line">	<span class="code-keyword">for</span> _, f := <span class="code-keyword">range</span> gen.Files {</span>
+<span class="code-line">		<span class="code-keyword">if</span> !f.Generate {</span>
+<span class="code-line">			<span class="code-keyword">continue</span></span>
+<span class="code-line">		}</span>
+<span class="code-line">		internal.<span class="code-function">GenerateFile</span>(gen, f)</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-keyword">return</span> <span class="code-keyword">nil</span></span>
+<span class="code-line">})</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">人话翻译</span>
+            <div class="translation-lines">
+              <p class="tl">「protogen 是官方给的接待框架：它替你从门缝收卷宗、拆包、整理成好用的结构。」</p>
+              <p class="tl">「这句是在报名单：本插件看得懂 proto3 的 optional 特性——一种合同语法。」</p>
+              <p class="tl">「卷宗里有一摞合同文件。逐份过目……」</p>
+              <p class="tl">「没点名要生成的（比如只是被引用的依赖合同），跳过。」</p>
+              <p class="tl">「点名的，送去车间：GenerateFile，开工。」</p>
+            </div>
+          </div>
+        </div>
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">「aha」时刻</strong>
+            <p>插件世界里有一条万能公式：<strong>入口越小，规矩越硬，生态越稳</strong>。stdin 进、stdout 出、命名约定找人——正因为规矩简单到无聊，任何语言写的插件都能挂上 protoc 这辆车。这种思路叫
+              <span class="term" data-definition="管道思想：让每个程序只做好一件小事，用统一的输入输出串起来。Unix 哲学的核心：小工具组合成大能力。">管道组合</span>。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">全景地图（可以点）</h2>
+        <p>点击任何一个方块，看它的自我介绍：</p>
+        <div class="arch-diagram">
+          <div class="arch-zone arch-zone-external">
+            <h4 class="arch-zone-label">编译现场</h4>
+            <div class="arch-component" data-desc="合同编译器，总指挥。它读 .proto 文件，先请官方插件产出基础代码（.pb.go / _grpc.pb.go），再按 --gin_out 参数把同一份合同递给本插件。"
+                >
+              <div class="arch-icon">📋</div>
+              <span>protoc</span>
+            </div>
+          </div>
+          <div class="arch-zone arch-zone-browser">
+            <h4 class="arch-zone-label">插件本体（本仓库）</h4>
+            <div class="arch-component" data-desc="39 行的前台。解析 --version 参数、声明支持的语法特性，然后把每个待生成文件转交给 internal.GenerateFile。它自己不写一行生成代码。"
+                >
+              <div class="arch-icon">🚪</div>
+              <span>main.go</span>
+            </div>
+            <div class="arch-component" data-desc="167 行的车间，全项目灵魂。遍历服务和方法，判断一元还是流式，用 g.P() 一行行拼出 handler 函数、swag 注解和路由注册代码。"
+                >
+              <div class="arch-icon">🏭</div>
+              <span>internal/generator.go</span>
+            </div>
+            <div class="arch-component" data-desc="共享零件箱。Error 错误体和 HTTPStatus 翻译表住在这里。生成代码 import 它——所以业务项目必须依赖本模块才能编译。"
+                >
+              <div class="arch-icon">🧰</div>
+              <span>ginruntime/</span>
+            </div>
+          </div>
+          <div class="arch-zone arch-zone-external">
+            <h4 class="arch-zone-label">样板间</h4>
+            <div class="arch-component" data-desc="独立子模块（有自己的 go.mod）。包含示例 proto、生成产物 user.gin.pb.go、可运行的服务，以及全套测试：单测、e2e、swagger 文档断言。"
+                >
+              <div class="arch-icon">🏠</div>
+              <span>example/</span>
+            </div>
+          </div>
+          <div class="arch-description" id="arch-desc">👆 点击任何组件，看它做什么</div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">为什么需要「零件箱」？</h2>
+        <p>一个自然的疑问：为什么不把 Error 类型和翻译表直接写进每个生成文件？试试就懂了——同一个
+          <span class="term" data-definition="包（package）：Go 里同一目录下的代码属于一个包，包内名字必须唯一。两个文件都定义 Error 类型？编译器直接罢工。">包</span>里出现两个同名类型，编译器当场报错：</p>
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-error)">
+            <div class="pattern-icon" style="background: var(--color-error)">💥</div>
+            <h4 class="pattern-title">写进每个生成文件？</h4>
+            <p class="pattern-desc">一份 proto 生成一个文件。用户的项目往往有几十份 proto——同一个包里塞进几十个同名 Error，编译直接爆炸。</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-success)">
+            <div class="pattern-icon" style="background: var(--color-success)">✅</div>
+            <h4 class="pattern-title">放进共享零件箱？</h4>
+            <p class="pattern-desc">零件只造一份，所有生成文件 import 它。还能顺手给 swag 一个统一引用——文档里的错误体定义只出现一次。</p>
+          </div>
+        </div>
+        <div class="callout callout-info">
+          <div class="callout-icon">🧩</div>
+          <div class="callout-content">
+            <strong class="callout-title">顺便说一句</strong>
+            <p>这个包名 <code>ginruntime</code> 是精心挑的——项目笔记里明确记录：不能改回 <code>runtime</code>，否则和 Go 标准库的 runtime 撞名，swag 解析注解时会静默产出错误的文档。改名的代价，往往藏在很远的地方。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">小测验：你分得清谁负责什么吗</h2>
+        <div class="quiz-container" id="quiz-module2">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="对！靠命名约定：可执行文件必须叫 protoc-gen-gin 且放在 PATH 里，protoc 看到 --gin_out 就去请它。安装（go install）做的事正是把二进制放进 PATH。"
+               data-explanation-wrong="回忆一下「从不见面的顾问」：protoc 不看配置文件，也不猜。它靠铁打的命名规则找人——前缀 protoc-gen 加参数名。">
+            <h3 class="quiz-question">你执行 go install github.com/Linuxea/protoc-gen-gin@latest 之后，protoc 是怎么找到这个插件的？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>protoc 启动时扫描全盘寻找可用插件</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>二进制按约定命名 protoc-gen-gin 放进了 PATH，protoc 据 --gin_out 参数找人</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>插件安装时会自动注册进 protoc 的配置文件</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="正确！生成产物是入库的静态文件，不会跟着插件源码自动变。流程是：go install 重建插件 → 在 proto 目录重跑 protoc → 重新生成并提交产物。这也是为什么改完插件必须「重新生成 example」——项目笔记里专门记了这一步。"
+               data-explanation-wrong="想想样板间的性质：example 里的 user.gin.pb.go 是某次运行插件时生成后存进仓库的文件。插件源码再怎么变，这个文件也不会自己变。">
+            <h3 class="quiz-question">同事改了 internal/generator.go 的生成逻辑并提交了代码。你拉取后直接跑 example 的测试——生成代码的行为会立刻变化吗？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>会，测试运行时会实时调用最新插件重新生成</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>会，因为 example 通过 replace 依赖了插件源码</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>不会——生成产物是入库的静态文件，必须重新安装插件并重跑 protoc 才会更新</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="没错！Example 的 go.mod 里写着 replace github.com/Linuxea/protoc-gen-gin =&gt; ../，让样板间直接用隔壁的插件源码——但那只影响编译依赖，生成产物依然是静态文件。replace 是本地开发的常用技巧。"
+               data-explanation-wrong="重新看一下演员表：example 确实通过 replace 用着根模块的 ginruntime 包，但它也是一个独立模块（有自己的 go.mod、自己的测试）。">
+            <h3 class="quiz-question">example 里的服务为什么能直接使用 ginruntime 包，而不需要在 go.mod 里写正式版本号？</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>go.mod 里用了 replace 指令，把模块指向上级目录的本地源码</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>因为 ginruntime 是 Go 标准库的一部分</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>example 不依赖 ginruntime，它自己复制了一份代码</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
