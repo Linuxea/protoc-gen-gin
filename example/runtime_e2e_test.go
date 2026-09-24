@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/test/bufconn"
 
-	"github.com/Linuxea/protoc-gen-gin/httpadapter"
 	userv1 "github.com/Linuxea/protoc-gen-gin/example/proto/user/v1"
+	"github.com/Linuxea/protoc-gen-gin/httpadapter"
 )
 
 // newRuntimeEngine mounts the same services as newEngine, but through the
