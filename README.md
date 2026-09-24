@@ -80,6 +80,43 @@ r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 注意：`swag init` 需要 `--parseDependency` 才能解析 `ginruntime.Error` 与 pb 结构体。
 
+## 运行期适配（无代码生成）：`httpadapter`
+
+不想跑 protoc 插件、或者要给**没有源码/pb 包**的 gRPC 服务挂 HTTP 时，用 `httpadapter`：运行期读取 proto 描述符，用 `conn.Invoke` 按方法全名转发。路由（`POST /<包名>.<Service>/<Method>`）、错误体、状态码映射、空 body、流式跳过都与生成代码一致。它是纯 `http.Handler`，不依赖 gin，根模块仍保持 Go 1.19 可用。
+
+**模式 A：本地描述符**（已 import `*.pb.go`，描述符来自 `protoregistry.GlobalFiles`，消息用生成的 Go 类型）
+
+```go
+a := httpadapter.New(conn)
+skipped, err := a.RegisterService("user.v1.UserService", "user.v1.NotificationService")
+for _, rt := range a.Routes() {
+	r.POST(rt.Path, gin.WrapH(rt.Handler)) // 或整体挂载：r.POST("/*rpc", gin.WrapH(a))
+}
+```
+
+**模式 B：服务端反射**（零生成代码，目标服务需 `reflection.Register(s)`，消息走 `dynamicpb`）
+
+```go
+files, services, err := httpadapter.FetchFiles(ctx, conn)
+a := httpadapter.New(conn, httpadapter.WithFiles(files))
+_, err = a.RegisterService(services...)
+```
+
+可选项：`WithPrefix("/api")`、`WithMetadata(func(*http.Request) metadata.MD)`（转发鉴权头等）、`WithMaxBodyBytes`（默认 4 MiB，超限 413）、`WithCallOptions`、`WithMarshalOptions` / `WithUnmarshalOptions`。
+
+与生成代码的差异（JSON 编解码走 protojson 而非 encoding/json）：
+
+| | 生成代码 | httpadapter |
+|---|---|---|
+| int64/uint64 输出 | 数字 `1` | 字符串 `"1"`（protojson 标准） |
+| 枚举输出 | 数字 | 枚举名（如 `"SERVING"`） |
+| 请求字段名 | proto 名（snake_case） | proto 名与 lowerCamel 均可 |
+| 零值字段 | omitempty 省略 | 省略（可 `EmitUnpopulated`） |
+| swag 文档 | 有 | 无（无具名 handler 可供 swag 解析） |
+| 非 POST | 404（gin 默认） | 405 |
+
+选择建议：对外 API、需要 swagger 文档 → 用插件生成；内部网关、调试入口、服务众多或拿不到 pb 包 → 用 `httpadapter`。
+
 ## gRPC → HTTP 状态码映射
 
 | gRPC code | HTTP |
@@ -105,7 +142,7 @@ r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 ## 开发
 
 ```bash
-go test ./...          # 插件单测
+go test ./...          # 插件单测 + httpadapter（bufconn + health/reflection 服务）
 cd example && go test ./...   # e2e（bufconn gRPC + httptest）+ swag 解析断言
 ```
 

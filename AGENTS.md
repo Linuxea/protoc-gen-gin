@@ -52,4 +52,5 @@ go test ./...                     # e2e 会校验生成物行为；TestSwaggerDo
 ## 设计要点速查
 
 - 生成物：每方法 `<Service><Method>Handler(cli XxxClient) gin.HandlerFunc`（带完整 swag 注解，@Description 取 proto leading comment）+ `Register<Service>Gin(r gin.IRoutes, cli)`；路由 `POST /<proto包名>.<Service>/<Method>`；流式方法跳过并告警（stderr + 生成物内 WARNING 注释）。
+- `httpadapter`：运行期适配（无生成），描述符来自 GlobalFiles 或服务端反射（`FetchFiles`，v1 反射），`conn.Invoke` 转发、protojson 编解码（int64 输出为字符串，与生成代码不同）。刻意做成纯 `http.Handler` 不依赖 gin——根模块引入 gin 会破坏 go 1.19 约束；复用 `ginruntime` 的错误体与状态码映射。
 - `ginruntime`：`Error` 错误体（`{"code":<grpc码>,"message":...}`）+ `HTTPStatus()` gRPC→HTTP 映射（grpc-gateway 同款）。独立成包是为避免同包多生成文件的类型重复定义。
